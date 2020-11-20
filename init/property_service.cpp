@@ -839,6 +839,19 @@ static const char *snet_prop_value[] = {
 	NULL
 };
 
+#ifdef TARGET_FORCE_BUILD_FINGERPRINT
+static const char *build_fingerprint_key[] = {
+    "ro.build.fingerprint",
+	"ro.system_ext.build.fingerprint",
+	"ro.vendor.build.fingerprint",
+	"ro.bootimage.build.fingerprint",
+	"ro.odm.build.fingerprint",
+	"ro.product.build.fingerprint",
+	"ro.system.build.fingerprint",
+	NULL
+};
+#endif
+
 static void workaround_snet_properties() {
     std::string build_type = android::base::GetProperty("ro.build.type", "");
 
@@ -854,6 +867,12 @@ static void workaround_snet_properties() {
             PropertySet(snet_prop_key[i], snet_prop_value[i], &error);
 	    }
     }
+
+    #ifdef TARGET_FORCE_BUILD_FINGERPRINT
+        for (int i = 0; build_fingerprint_key[i]; ++i) {
+            PropertySet(build_fingerprint_key[i], TARGET_FORCE_BUILD_FINGERPRINT, &error);
+        }
+    #endif
 
     // Restore the normal property override security after safetynet props have been set
     weaken_prop_override_security = false;
@@ -1001,6 +1020,7 @@ static void property_derive_legacy_build_fingerprint() {
     }
 }
 
+#ifndef TARGET_FORCE_BUILD_FINGERPRINT
 // If the ro.build.fingerprint property has not been set, derive it from constituent pieces
 static void property_derive_build_fingerprint() {
     std::string build_fingerprint = GetProperty("ro.build.fingerprint", "");
@@ -1018,6 +1038,7 @@ static void property_derive_build_fingerprint() {
                    << error << ")";
     }
 }
+#endif
 
 // If the ro.product.cpu.abilist* properties have not been explicitly
 // set, derive them from ro.${partition}.product.cpu.abilist* properties.
@@ -1167,7 +1188,9 @@ void PropertyLoadBootDefaults() {
 
     property_initialize_ro_product_props();
     property_initialize_build_id();
+#ifndef TARGET_FORCE_BUILD_FINGERPRINT
     property_derive_build_fingerprint();
+#endif
     property_derive_legacy_build_fingerprint();
     property_initialize_ro_cpu_abilist();
 
